@@ -17,7 +17,7 @@ from .preferences import getPreferences
 def getGroundHdriNodeGroup():
     if "GroundHdri" not in bpy.data.node_groups:
         blendfile = os.path.join(os.path.dirname(os.path.realpath(__file__)), "database.blend")
-        section   = "\\NodeTree\\"
+        section   = os.sep + "NodeTree" + os.sep
         object    = "GroundHdri"
         filepath  = blendfile + section + object
         directory = blendfile + section
@@ -26,8 +26,20 @@ def getGroundHdriNodeGroup():
             filepath=filepath,
             filename=filename,
             directory=directory)
+
+    # Fallback for Blender 5.x where wm.append may silently fail
+    if "GroundHdri" not in bpy.data.node_groups:
+        group = bpy.data.node_groups.new("GroundHdri", 'ShaderNodeTree')
+        group.interface.new_socket(name="Vector", in_out='INPUT',  socket_type='NodeSocketVector')
+        group.interface.new_socket(name="Vector", in_out='OUTPUT', socket_type='NodeSocketVector')
+        input_node  = group.nodes.new('NodeGroupInput')
+        output_node = group.nodes.new('NodeGroupOutput')
+        input_node.location  = (-200, 0)
+        output_node.location = ( 200, 0)
+        group.links.new(input_node.outputs[0], output_node.inputs[0])
+
     return bpy.data.node_groups["GroundHdri"]
-    
+
 def find_closest_version(input_version, versions):
     return max((v for v in versions if v <= input_version), default=None)
 
@@ -38,7 +50,7 @@ class CyclesWorldData(WorldData):
         img = self.maps['sky']
         if img is not None:
             getCyclesImage(img)
-            
+
     def createWorld(self):
         world = bpy.data.worlds.new(name=self.name)
         world.use_nodes = True
